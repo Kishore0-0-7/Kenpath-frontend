@@ -2,9 +2,9 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kenpath-frontend",
   "compatibility_date": "2026-11-22",
-  "preview_urls": false,
+  "preview_urls": true,
   "observability": {
-    "enabled": false
+    "enabled": true
   },
   "assets": {
     "directory": "./dist",
