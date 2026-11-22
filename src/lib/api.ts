@@ -101,8 +101,15 @@ function isLeakedTechnicalError(msg: string): boolean {
 }
 
 export function getApiBaseUrl(): string {
-  const envUrl = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  let envUrl = (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/^["'\s]+|["'\s]+$/g, "");
   if (envUrl) {
+    if (!envUrl.startsWith("http://") && !envUrl.startsWith("https://")) {
+      if (envUrl.startsWith("//")) {
+        envUrl = `https:${envUrl}`;
+      } else if (!envUrl.startsWith("/")) {
+        envUrl = `https://${envUrl}`;
+      }
+    }
     return envUrl.replace(/\/+$/, "");
   }
 
@@ -130,15 +137,20 @@ export function resolveApiUrl(endpoint: string): string {
     return cleanEndpoint;
   }
 
-  if (base.endsWith("/api") && cleanEndpoint.startsWith("/api")) {
-    return `${base}${cleanEndpoint.substring(4)}`;
+  let normalizedBase = base;
+  if (!normalizedBase.startsWith("http://") && !normalizedBase.startsWith("https://") && !normalizedBase.startsWith("/")) {
+    normalizedBase = `https://${normalizedBase}`;
   }
 
-  if (!base.endsWith("/api") && !cleanEndpoint.startsWith("/api")) {
-    return `${base}/api${cleanEndpoint}`;
+  if (normalizedBase.endsWith("/api") && cleanEndpoint.startsWith("/api")) {
+    return `${normalizedBase}${cleanEndpoint.substring(4)}`;
   }
 
-  return `${base}${cleanEndpoint}`;
+  if (!normalizedBase.endsWith("/api") && !cleanEndpoint.startsWith("/api")) {
+    return `${normalizedBase}/api${cleanEndpoint}`;
+  }
+
+  return `${normalizedBase}${cleanEndpoint}`;
 }
 
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
