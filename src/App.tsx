@@ -15,6 +15,7 @@ import { DashboardPage } from "./pages/dashboard.js";
 import { ReadingsPage } from "./pages/readings.js";
 import { ReportsPage } from "./pages/reports.js";
 import { ProfilePage } from "./pages/profile.js";
+import { CloudflareAnalytics } from "./components/cloudflare-analytics.js";
 
 function FullScreenSpinner() {
   return (
@@ -61,6 +62,7 @@ function PublicRoute() {
 export function App() {
   return (
     <BrowserRouter>
+      <CloudflareAnalytics />
       <Routes>
         {/* Public Authentication Routes */}
         <Route element={<PublicRoute />}>
