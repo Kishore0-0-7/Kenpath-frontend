@@ -100,6 +100,47 @@ function isLeakedTechnicalError(msg: string): boolean {
   );
 }
 
+export function getApiBaseUrl(): string {
+  const envUrl = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, "");
+  }
+
+  // If in browser and on production domain
+  if (typeof window !== "undefined" && window.location) {
+    const host = window.location.hostname;
+    if (host.includes("kishore007.me") || host.includes("pages.dev") || host.includes("workers.dev")) {
+      return "https://kenpath-backend.kishore007.me";
+    }
+  }
+
+  // In local dev with Vite proxy, use empty base (relative paths like /api)
+  return "";
+}
+
+export function resolveApiUrl(endpoint: string): string {
+  if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
+    return endpoint;
+  }
+
+  const base = getApiBaseUrl();
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+  if (!base) {
+    return cleanEndpoint;
+  }
+
+  if (base.endsWith("/api") && cleanEndpoint.startsWith("/api")) {
+    return `${base}${cleanEndpoint.substring(4)}`;
+  }
+
+  if (!base.endsWith("/api") && !cleanEndpoint.startsWith("/api")) {
+    return `${base}/api${cleanEndpoint}`;
+  }
+
+  return `${base}${cleanEndpoint}`;
+}
+
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getStoredToken();
   const headers = new Headers(options.headers || {});
@@ -109,9 +150,10 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  const url = resolveApiUrl(endpoint);
   let response: Response;
   try {
-    response = await fetch(endpoint, {
+    response = await fetch(url, {
       ...options,
       headers,
     });
@@ -137,8 +179,8 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     // Only clear token if HTTP 401 specifically returned by an authorized route
     if (
       response.status === 401 &&
-      !endpoint.includes("/api/auth/login") &&
-      !endpoint.includes("/api/auth/register")
+      !url.includes("/api/auth/login") &&
+      !url.includes("/api/auth/register")
     ) {
       setStoredToken(null);
       setCachedUser(null);
